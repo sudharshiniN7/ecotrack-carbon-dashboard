@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EcoTrack — Student Carbon Footprint Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+  /* ═══ RECOMMENDATIONS ═══ */
+  .rec-header { margin-bottom: 1.25rem; }
+  .rec-title-row { display:flex; align-items:center; gap:0.9rem; }
+  .rec-icon { font-size:2rem; }
+  .rec-title { font-family:'DM Serif Display',serif; font-size:1.35rem; color:var(--text); }
+  .rec-subtitle { font-size:0.78rem; color:var(--text3); margin-top:2px; }
+
+  .rec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+
+  .rec-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem 1.3rem;
+    position: relative;
+    overflow: hidden;
+    animation: fade-up 0.4s ease both;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .rec-card:hover { transform:translateY(-2px); box-shadow: var(--glow); }
+  .rec-card::before {
+    content:''; position:absolute; top:0; left:0; width:4px; height:100%;
+    background: linear-gradient(180deg, var(--green3), var(--lime));
+    border-radius: 4px 0 0 4px;
+  }
+
+  .rec-card-top { display:flex; align-items:flex-start; gap:0.75rem; margin-bottom:0.75rem; }
+  .rec-card-icon {
+    width:36px; height:36px; border-radius:10px;
+    background: rgba(74,222,128,0.12);
+    border: 1px solid rgba(74,222,128,0.2);
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.1rem; flex-shrink:0;
+  }
+  .rec-card-body { flex:1; }
+  .rec-card-text { font-size:0.88rem; color:var(--text); line-height:1.5; margin-bottom:0.4rem; }
+  .rec-card-detail { font-size:0.76rem; color:var(--text3); line-height:1.4; }
+
+  .rec-card-footer {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top:0.85rem; padding-top:0.75rem;
+    border-top: 1px solid rgba(42,74,53,0.5);
+  }
+  .rec-category-pill {
+    font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em;
+    padding:2px 8px; border-radius:20px;
+    background: rgba(74,222,128,0.1); color:var(--green3);
+    border: 1px solid rgba(74,222,128,0.2);
+  }
+  .rec-saving {
+    font-size:0.8rem; font-weight:700; color:var(--lime);
+    background: rgba(163,230,53,0.1);
+    border: 1px solid rgba(163,230,53,0.2);
+    padding: 3px 10px; border-radius:20px;
+  }
+
+  /* ═══ SIMULATOR ═══ */
+  .sim-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .sim-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 1.4rem 1.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .sim-title { font-family:'DM Serif Display',serif; font-size:1.35rem; color:var(--text); }
+  .sim-subtitle { font-size:0.78rem; color:var(--text3); margin-top:2px; }
+
+  .sim-delta-badge {
+    font-size:0.85rem; font-weight:700;
+    padding: 5px 14px; border-radius:20px;
+  }
+
+  .sim-body {
+    display:grid; grid-template-columns:1fr auto;
+    gap:1.5rem; padding:1.5rem 1.75rem;
+    align-items:start;
+  }
+  @media(max-width:900px){ .sim-body{ grid-template-columns:1fr; } }
+
+  .sim-controls { }
+
+  .sim-compare {
+    display:flex; flex-direction:column; align-items:center;
+    gap:0.75rem; min-width:200px;
+  }
+  @media(max-width:900px){ .sim-compare{ flex-direction:row; justify-content:center; min-width:unset; } }
+
+  .sim-score-box {
+    text-align:center;
+    padding: 1.1rem 1.4rem;
+    border-radius:12px;
+    border: 1px solid var(--border);
+    min-width:130px;
+  }
+  .sim-old { background: rgba(239,68,68,0.07); border-color: rgba(239,68,68,0.2); }
+  .sim-new { background: rgba(74,222,128,0.07); border-color: rgba(74,222,128,0.2); }
+
+  .sim-box-label {
+    font-size:0.62rem; font-weight:700; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--text3); margin-bottom:0.4rem;
+  }
+  .sim-box-val { font-family:'DM Serif Display',serif; font-size:2rem; line-height:1; }
+  .sim-old .sim-box-val { color:#ef4444; }
+  .sim-new .sim-box-val { color:var(--green); }
+  .sim-box-unit { font-size:0.72rem; color:var(--text3); margin-top:3px; }
+
+  .sim-arrow-col { text-align:center; }
+  .sim-arrow { font-size:1.5rem; color:var(--text3); }
+  .sim-reduction { font-size:0.72rem; color:var(--text3); margin-top:4px; text-align:center; max-width:90px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header class="header">
+  <a href="#" class="logo">
+    <div class="logo-icon">🌱</div>
+    <div class="logo-text">Eco<span>Track</span></div>
+  </a>
+
+  <nav class="nav-tabs">
+    <button class="nav-tab active" onclick="switchSection('dashboard', this)">📊 Dashboard</button>
+    <button class="nav-tab" onclick="switchSection('calculator', this)">🧮 Calculator</button>
+    <button class="nav-tab" onclick="switchSection('leaderboard', this)">🏆 Leaderboard</button>
+  </nav>
+
+  <button class="upload-btn" onclick="openModal()">
+    ⬆ Upload CSV
+  </button>
+</header>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<div class="hero">
+  <div class="hero-label">🌿 Student Sustainability Initiative</div>
+  <h1>Track Your <em>Carbon Footprint</em><br>Make a Difference</h1>
+  <p>Analyze your campus's environmental impact through transport, diet, energy and device usage data. Every small change counts.</p>
+</div>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main class="main-content">
+
+  <!-- ── DASHBOARD SECTION ── -->
+  <section id="section-dashboard" class="section active">
+
+    <!-- KPI Row -->
+    <div class="kpi-grid" id="kpi-grid">
+      <div class="kpi-card"><div class="kpi-icon">👥</div><div class="kpi-value" id="kpi-total">—</div><div class="kpi-label">Total Students</div></div>
+      <div class="kpi-card"><div class="kpi-icon">🌡️</div><div class="kpi-value" id="kpi-avg">—<span> kg/yr</span></div><div class="kpi-label">Avg CO₂ Footprint</div></div>
+      <div class="kpi-card"><div class="kpi-icon">✅</div><div class="kpi-value" id="kpi-min">—<span> kg</span></div><div class="kpi-label">Lowest Footprint</div></div>
+      <div class="kpi-card"><div class="kpi-icon">⚠️</div><div class="kpi-value" id="kpi-max">—<span> kg</span></div><div class="kpi-label">Highest Footprint</div></div>
+      <div class="kpi-card"><div class="kpi-icon">🧠</div><div class="kpi-value" id="kpi-aware">—<span>%</span></div><div class="kpi-label">High Awareness</div></div>
+      <div class="kpi-card"><div class="kpi-icon">🚲</div><div class="kpi-value" id="kpi-eco">—<span>%</span></div><div class="kpi-label">Eco Transport</div></div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Transport Mode Distribution</div>
+            <div class="chart-subtitle">How students commute to campus</div>
+          </div>
+          <span class="chart-badge">Doughnut</span>
+        </div>
+        <div class="chart-container"><canvas id="chartTransport"></canvas></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Diet Type Distribution</div>
+            <div class="chart-subtitle">Dietary habits across the cohort</div>
+          </div>
+          <span class="chart-badge">Pie</span>
+        </div>
+        <div class="chart-container"><canvas id="chartDiet"></canvas></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Awareness Levels</div>
+            <div class="chart-subtitle">Environmental awareness distribution</div>
+          </div>
+          <span class="chart-badge">Bar</span>
+        </div>
+        <div class="chart-container"><canvas id="chartAwareness"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Avg CO₂ by Transport Mode</div>
+            <div class="chart-subtitle">kg/year carbon footprint comparison</div>
+          </div>
+          <span class="chart-badge">Horizontal Bar</span>
+        </div>
+        <div class="chart-container"><canvas id="chartCarbonTransport"></canvas></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Avg CO₂ by Diet</div>
+            <div class="chart-subtitle">Impact of diet choices on footprint</div>
+          </div>
+          <span class="chart-badge">Bar</span>
+        </div>
+        <div class="chart-container"><canvas id="chartCarbonDiet"></canvas></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Role Distribution</div>
+            <div class="chart-subtitle">Student academic levels</div>
+          </div>
+          <span class="chart-badge">Polar Area</span>
+        </div>
+        <div class="chart-container"><canvas id="chartRole"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Scatter full width -->
+    <div class="chart-grid">
+      <div class="chart-card wide">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Weekly Travel vs Carbon Footprint</div>
+            <div class="chart-subtitle">Each dot is a student — hover for name</div>
+          </div>
+          <span class="chart-badge">Scatter Plot</span>
+        </div>
+        <div class="chart-container"><canvas id="chartScatter" style="max-height:300px !important;"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CALCULATOR SECTION ── -->
+  <section id="section-calculator" class="section">
+    <div class="calc-wrapper">
+
+      <!-- Form -->
+      <div class="calc-card">
+        <h2>🧮 Carbon Calculator</h2>
+        <p class="subtitle">Enter your lifestyle details to estimate your annual CO₂ footprint</p>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Transport Mode</label>
+            <select id="inp-transport">
+              <option value="Bus">🚌 Bus</option>
+              <option value="Bicycle">🚲 Bicycle</option>
+              <option value="Walk">🚶 Walk</option>
+              <option value="Public Transit">🚇 Public Transit</option>
+              <option value="Motorcycle">🏍️ Motorcycle</option>
+              <option value="Car">🚗 Car</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Diet Type</label>
+            <select id="inp-diet">
+              <option value="Vegan">🌿 Vegan</option>
+              <option value="Vegetarian">🥦 Vegetarian</option>
+              <option value="Omnivore" selected>🍗 Omnivore</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Awareness Level</label>
+          <select id="inp-awareness">
+            <option value="High">🧠 High</option>
+            <option value="Medium" selected>📘 Medium</option>
+            <option value="Low">😐 Low</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Weekly Travel Distance — <span class="range-value" id="val-travel">40</span> km</label>
+          <input type="range" id="inp-travel" min="0" max="200" value="40"
+            oninput="document.getElementById('val-travel').textContent=this.value" />
+          <div class="range-labels"><span>0 km</span><span>200 km</span></div>
+        </div>
+
+        <div class="form-group">
+          <label>Meat Meals / Week — <span class="range-value" id="val-meat">5</span></label>
+          <input type="range" id="inp-meat" min="0" max="21" value="5"
+            oninput="document.getElementById('val-meat').textContent=this.value" />
+          <div class="range-labels"><span>0</span><span>21</span></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Electricity (kWh/month)</label>
+            <input type="number" id="inp-electricity" value="70" min="0" max="500" />
+          </div>
+          <div class="form-group">
+            <label>Screen Time (hrs/day)</label>
+            <input type="number" id="inp-devices" value="6" min="0" max="24" />
+          </div>
+        </div>
+
+        <button class="calc-btn" onclick="calculate()">
+          ⚡ Calculate My Footprint
+        </button>
+      </div>
+
+      <!-- Result Panel -->
+      <div class="result-card" id="result-panel">
+        <div class="result-empty" id="result-empty">
+          <div class="big-icon">🌱</div>
+          <p>Fill in the form and hit Calculate<br>to see your carbon footprint analysis.</p>
+        </div>
+
+        <div id="result-content" style="display:none; flex-direction:column; gap:1.4rem;">
+          <div class="result-header">
+            <div class="result-score-label">YOUR ANNUAL CO₂ FOOTPRINT</div>
+            <div class="result-score" id="res-score" style="color: var(--green)">— <span>kg CO₂</span></div>
+            <div class="result-rating" id="res-rating"></div>
+          </div>
+
+          <div class="result-meter">
+            <div class="meter-label">
+              <span>0 kg (Best)</span>
+              <span>600 kg (Worst)</span>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill" id="res-meter" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:0.75rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.7rem;font-weight:600;">Emission Breakdown</div>
+            <div class="breakdown-list" id="res-breakdown"></div>
+          </div>
+
+          <div class="result-tip" id="res-tip"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PERSONALIZED RECOMMENDATIONS ══ -->
+    <div id="recommendations-section" style="display:none; margin-top:2rem;">
+      <div class="rec-header">
+        <div class="rec-title-row">
+          <span class="rec-icon">🌱</span>
+          <div>
+            <div class="rec-title">Personalized Recommendations</div>
+            <div class="rec-subtitle">AI-generated actions based on your lifestyle profile</div>
+          </div>
+        </div>
+      </div>
+      <div class="rec-grid" id="rec-grid"></div>
+    </div>
+
+    <!-- ══ WHAT-IF SIMULATOR ══ -->
+    <div id="simulator-section" style="display:none; margin-top:2rem;">
+      <div class="sim-card">
+        <div class="sim-header">
+          <div>
+            <div class="sim-title">🔬 What-If Simulator</div>
+            <div class="sim-subtitle">Tweak your habits below and see the instant CO₂ impact</div>
+          </div>
+          <div class="sim-delta-badge" id="sim-delta-badge" style="display:none"></div>
+        </div>
+
+        <div class="sim-body">
+          <div class="sim-controls">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Transport Mode</label>
+                <select id="sim-transport" oninput="runSimulator()">
+                  <option value="Bus">🚌 Bus</option>
+                  <option value="Bicycle">🚲 Bicycle</option>
+                  <option value="Walk">🚶 Walk</option>
+                  <option value="Public Transit">🚇 Public Transit</option>
+                  <option value="Motorcycle">🏍️ Motorcycle</option>
+                  <option value="Car">🚗 Car</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Diet Type</label>
+                <select id="sim-diet" oninput="runSimulator()">
+                  <option value="Vegan">🌿 Vegan</option>
+                  <option value="Vegetarian">🥦 Vegetarian</option>
+                  <option value="Omnivore">🍗 Omnivore</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Weekly Travel — <span class="range-value" id="sim-val-travel">40</span> km</label>
+              <input type="range" id="sim-travel" min="0" max="200" value="40"
+                oninput="document.getElementById('sim-val-travel').textContent=this.value; runSimulator()" />
+              <div class="range-labels"><span>0 km</span><span>200 km</span></div>
+            </div>
+
+            <div class="form-group">
+              <label>Meat Meals / Week — <span class="range-value" id="sim-val-meat">5</span></label>
+              <input type="range" id="sim-meat" min="0" max="21" value="5"
+                oninput="document.getElementById('sim-val-meat').textContent=this.value; runSimulator()" />
+              <div class="range-labels"><span>0</span><span>21</span></div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Electricity (kWh/month)</label>
+                <input type="number" id="sim-electricity" value="70" min="0" max="500" oninput="runSimulator()" />
+              </div>
+              <div class="form-group">
+                <label>Screen Time (hrs/day)</label>
+                <input type="number" id="sim-devices" value="6" min="0" max="24" oninput="runSimulator()" />
+              </div>
+            </div>
+          </div>
+
+          <div class="sim-compare">
+            <div class="sim-score-box sim-old">
+              <div class="sim-box-label">YOUR CURRENT</div>
+              <div class="sim-box-val" id="sim-old-val">—</div>
+              <div class="sim-box-unit">kg CO₂/yr</div>
+            </div>
+            <div class="sim-arrow-col">
+              <div class="sim-arrow">→</div>
+              <div class="sim-reduction" id="sim-reduction-label">tweak the sliders</div>
+            </div>
+            <div class="sim-score-box sim-new">
+              <div class="sim-box-label">PROJECTED NEW</div>
+              <div class="sim-box-val" id="sim-new-val">—</div>
+              <div class="sim-box-unit">kg CO₂/yr</div>
+            </div>
+          </div>
+
+          <div style="margin-top:1.2rem;">
+            <div class="meter-label">
+              <span style="color:var(--text3);font-size:0.72rem;">CO₂ Reduction Progress</span>
+              <span id="sim-pct-label" style="color:var(--green);font-size:0.78rem;font-weight:700;"></span>
+            </div>
+            <div class="meter-track" style="height:10px;">
+              <div id="sim-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#a3e635);border-radius:5px;transition:width 0.5s ease;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ── LEADERBOARD SECTION ── -->
+  <section id="section-leaderboard" class="section">
+    <div class="leaderboard-card">
+      <div class="lb-header">
+        <div>
+          <div class="lb-title">🏆 Eco Champions Leaderboard</div>
+          <div class="lb-subtitle">Top 10 students with the lowest carbon footprint</div>
+        </div>
+      </div>
+      <table id="lb-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Name</th><th>Role</th><th>Transport</th><th>Diet</th><th>CO₂ Score</th>
+          </tr>
+        </thead>
+        <tbody id="lb-body">
+          <tr><td colspan="6" style="text-align:center;color:var(--text3);padding:2rem;">
+            <div class="spinner" style="margin:0 auto 0.5rem"></div><br>Loading leaderboard…
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════════ UPLOAD MODAL ═══════════════ -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <h3>📂 Upload Dataset</h3>
+    <p>Upload a CSV file with the same column structure as the sample dataset. The dashboard will refresh automatically.</p>
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+      ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+      <div class="drop-icon">📄</div>
+      <p>Click or drag & drop your CSV file here</p>
+      <small>Supported: .csv — Max 5MB</small>
+    </div>
+    <input type="file" id="file-input" accept=".csv" style="display:none" onchange="handleFileSelect(event)" />
+    <div id="file-name" style="font-size:0.8rem;color:var(--text3);margin-top:0.5rem;"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="uploadFile()">Upload & Refresh</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TOAST ═══════════════ -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════ SCRIPT ═══════════════ -->
+<script>
+Chart.defaults.color = '#a7c4b0';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.borderColor = 'rgba(42,74,53,0.5)';
+
+const PALETTE = [
+  '#4ade80','#22c55e','#a3e635','#fbbf24','#f97316',
+  '#38bdf8','#818cf8','#fb7185','#34d399','#e879f9'
+];
+
+let charts = {};
+let selectedFile = null;
+
+function switchSection(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'leaderboard') loadLeaderboard();
+}
+
+async function initDashboard() {
+  try {
+    const res = await fetch('/api/dashboard');
+    const data = await res.json();
+    renderKPIs(data.kpis);
+    renderCharts(data);
+  } catch(e) {
+    showToast('Failed to load dashboard data', 'error');
+  }
+}
+
+function renderKPIs(kpis) {
+  document.getElementById('kpi-total').textContent = kpis.total_students;
+  document.getElementById('kpi-avg').innerHTML = kpis.avg_footprint + '<span> kg/yr</span>';
+  document.getElementById('kpi-min').innerHTML = kpis.min_footprint + '<span> kg</span>';
+  document.getElementById('kpi-max').innerHTML = kpis.max_footprint + '<span> kg</span>';
+  document.getElementById('kpi-aware').innerHTML = kpis.high_awareness_pct + '<span>%</span>';
+  document.getElementById('kpi-eco').innerHTML = kpis.eco_transport_pct + '<span>%</span>';
+}
+
+function renderCharts(data) {
+  destroyCharts();
+
+  charts.transport = new Chart(document.getElementById('chartTransport'), {
+    type: 'doughnut',
+    data: { labels: data.transport.labels, datasets: [{ data: data.transport.values,
+      backgroundColor: PALETTE, borderColor: '#1a3023', borderWidth: 3, hoverOffset: 8 }] },
+    options: { plugins: { legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true } } },
+      cutout: '62%', animation: { animateRotate: true, duration: 900 } }
+  });
+
+  charts.diet = new Chart(document.getElementById('chartDiet'), {
+    type: 'pie',
+    data: { labels: data.diet.labels, datasets: [{ data: data.diet.values,
+      backgroundColor: PALETTE.slice(2), borderColor: '#1a3023', borderWidth: 3, hoverOffset: 8 }] },
+    options: { plugins: { legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true } } },
+      animation: { duration: 900 } }
+  });
+
+  const awareMeta = { 'High': '#4ade80', 'Medium': '#fbbf24', 'Low': '#ef4444' };
+  charts.awareness = new Chart(document.getElementById('chartAwareness'), {
+    type: 'bar',
+    data: { labels: data.awareness.labels, datasets: [{ data: data.awareness.values,
+      backgroundColor: data.awareness.labels.map(l => awareMeta[l] || '#4ade80'),
+      borderRadius: 6, borderSkipped: false }] },
+    options: { plugins: { legend: { display: false } }, scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: 'rgba(42,74,53,0.4)' }, ticks: { stepSize: 5 } }
+    }, animation: { duration: 800 } }
+  });
+
+  charts.carbonTransport = new Chart(document.getElementById('chartCarbonTransport'), {
+    type: 'bar',
+    data: { labels: data.carbon_by_transport.labels, datasets: [{ data: data.carbon_by_transport.values,
+      backgroundColor: PALETTE, borderRadius: 5, borderSkipped: false }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: {
+      x: { grid: { color: 'rgba(42,74,53,0.4)' } },
+      y: { grid: { display: false } }
+    }, animation: { duration: 800 } }
+  });
+
+  const dietColors = { Vegan: '#4ade80', Vegetarian: '#a3e635', Omnivore: '#f97316' };
+  charts.carbonDiet = new Chart(document.getElementById('chartCarbonDiet'), {
+    type: 'bar',
+    data: { labels: data.carbon_by_diet.labels, datasets: [{ data: data.carbon_by_diet.values,
+      backgroundColor: data.carbon_by_diet.labels.map(l => dietColors[l] || '#4ade80'),
+      borderRadius: 6, borderSkipped: false }] },
+    options: { plugins: { legend: { display: false } }, scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: 'rgba(42,74,53,0.4)' } }
+    }, animation: { duration: 800 } }
+  });
+
+  charts.role = new Chart(document.getElementById('chartRole'), {
+    type: 'polarArea',
+    data: { labels: data.role.labels, datasets: [{ data: data.role.values,
+      backgroundColor: PALETTE.map(c => c + 'cc'), borderColor: PALETTE, borderWidth: 2 }] },
+    options: { plugins: { legend: { position: 'bottom', labels: { padding: 10, usePointStyle: true } } },
+      scales: { r: { grid: { color: 'rgba(42,74,53,0.5)' }, ticks: { display: false } } },
+      animation: { duration: 900 } }
+  });
+
+  const transportSet = [...new Set(data.scatter.transport)];
+  const scatterDatasets = transportSet.map((t, i) => {
+    const pts = data.scatter.x.map((x, idx) => data.scatter.transport[idx] === t
+      ? { x, y: data.scatter.y[idx], label: data.scatter.labels[idx] } : null
+    ).filter(Boolean);
+    return { label: t, data: pts, backgroundColor: PALETTE[i % PALETTE.length] + 'cc',
+      pointRadius: 7, pointHoverRadius: 10 };
+  });
+
+  charts.scatter = new Chart(document.getElementById('chartScatter'), {
+    type: 'scatter',
+    data: { datasets: scatterDatasets },
+    options: { plugins: {
+      legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12 } },
+      tooltip: { callbacks: { label: ctx => `${ctx.raw.label}: ${ctx.raw.x}km, ${ctx.raw.y}kg CO₂` } }
+    }, scales: {
+      x: { title: { display: true, text: 'Weekly Travel (km)', color: '#6b9478' }, grid: { color: 'rgba(42,74,53,0.4)' } },
+      y: { title: { display: true, text: 'Carbon Footprint (kg/yr)', color: '#6b9478' }, grid: { color: 'rgba(42,74,53,0.4)' } }
+    }, animation: { duration: 700 } }
+  });
+}
+
+function destroyCharts() {
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+}
+
+// ── CALCULATOR ──
+let baselineKg = null;
+
+function getCalcPayload() {
+  return {
+    transport_mode:        document.getElementById('inp-transport').value,
+    diet_type:             document.getElementById('inp-diet').value,
+    awareness_level:       document.getElementById('inp-awareness').value,
+    weekly_travel_km:      parseFloat(document.getElementById('inp-travel').value),
+    meat_meals_per_week:   parseFloat(document.getElementById('inp-meat').value),
+    electricity_kwh_month: parseFloat(document.getElementById('inp-electricity').value),
+    device_hours_per_day:  parseFloat(document.getElementById('inp-devices').value),
+  };
+}
+
+async function calculate() {
+  const payload = getCalcPayload();
+  const btn = document.querySelector('.calc-btn');
+  btn.textContent = '⏳ Calculating…';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/calculate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    baselineKg = data.predicted_kg;
+    renderResult(data);
+    renderRecommendations(data.suggestions || []);
+    initSimulator(payload, data.predicted_kg);
+  } catch(e) {
+    showToast('Calculation failed: ' + e.message, 'error');
+  } finally {
+    btn.textContent = '⚡ Calculate My Footprint';
+    btn.disabled = false;
+  }
+}
+
+function renderResult(data) {
+  document.getElementById('result-empty').style.display = 'none';
+  const rc = document.getElementById('result-content');
+  rc.style.display = 'flex';
+  document.getElementById('res-score').innerHTML =
+    `<span style="font-size:3.8rem;font-family:'DM Serif Display',serif;color:${data.rating_color}">${data.predicted_kg}</span> <span>kg CO₂/yr</span>`;
+  const rb = document.getElementById('res-rating');
+  rb.textContent = data.rating;
+  rb.style.background = data.rating_color + '22';
+  rb.style.color = data.rating_color;
+  rb.style.border = `1px solid ${data.rating_color}55`;
+  const pct = Math.min(100, (data.predicted_kg / 600) * 100);
+  document.getElementById('res-meter').style.width = pct + '%';
+  const maxVal = Math.max(...Object.values(data.breakdown));
+  document.getElementById('res-breakdown').innerHTML = Object.entries(data.breakdown).map(([k, v]) => {
+    const pct = maxVal > 0 ? (v / maxVal * 100) : 0;
+    const colors = { Transport: '#38bdf8', Diet: '#a3e635', Electricity: '#fbbf24', Devices: '#e879f9' };
+    return `<div class="breakdown-row">
+      <div class="breakdown-row-top"><span>${k}</span><span>${v} kg</span></div>
+      <div class="breakdown-bar-track"><div class="breakdown-bar-fill" style="width:${pct}%;background:${colors[k]||'#4ade80'}"></div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('res-tip').innerHTML = `<strong>💡 Tip:</strong> ${data.tip}`;
+}
+
+// ── RECOMMENDATIONS ──
+function renderRecommendations(suggestions) {
+  const section = document.getElementById('recommendations-section');
+  const grid = document.getElementById('rec-grid');
+  if (!suggestions || suggestions.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  grid.innerHTML = suggestions.map((s, i) => `
+    <div class="rec-card" style="animation-delay:${i * 0.08}s">
+      <div class="rec-card-top">
+        <div class="rec-card-icon">${s.icon}</div>
+        <div class="rec-card-body">
+          <div class="rec-card-text">${s.text}</div>
+          <div class="rec-card-detail">${s.detail || ''}</div>
+        </div>
+      </div>
+      <div class="rec-card-footer">
+        <span class="rec-category-pill">${s.category}</span>
+        <span class="rec-saving">💚 Save ~${s.saving_kg} kg CO₂/yr</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── WHAT-IF SIMULATOR ──
+function initSimulator(originalPayload, originalKg) {
+  document.getElementById('simulator-section').style.display = 'block';
+  document.getElementById('sim-transport').value = originalPayload.transport_mode;
+  document.getElementById('sim-diet').value = originalPayload.diet_type;
+  document.getElementById('sim-travel').value = originalPayload.weekly_travel_km;
+  document.getElementById('sim-val-travel').textContent = originalPayload.weekly_travel_km;
+  document.getElementById('sim-meat').value = originalPayload.meat_meals_per_week;
+  document.getElementById('sim-val-meat').textContent = originalPayload.meat_meals_per_week;
+  document.getElementById('sim-electricity').value = originalPayload.electricity_kwh_month;
+  document.getElementById('sim-devices').value = originalPayload.device_hours_per_day;
+  document.getElementById('sim-old-val').textContent = originalKg;
+  document.getElementById('sim-new-val').textContent = originalKg;
+  document.getElementById('sim-reduction-label').textContent = 'change a slider to compare';
+  document.getElementById('sim-delta-badge').style.display = 'none';
+  document.getElementById('sim-progress-bar').style.width = '0%';
+  document.getElementById('sim-pct-label').textContent = '';
+}
+
+let simDebounce = null;
+async function runSimulator() {
+  if (baselineKg === null) return;
+  clearTimeout(simDebounce);
+  simDebounce = setTimeout(async () => {
+    const payload = {
+      transport_mode:        document.getElementById('sim-transport').value,
+      diet_type:             document.getElementById('sim-diet').value,
+      awareness_level:       document.getElementById('inp-awareness').value,
+      weekly_travel_km:      parseFloat(document.getElementById('sim-travel').value),
+      meat_meals_per_week:   parseFloat(document.getElementById('sim-meat').value),
+      electricity_kwh_month: parseFloat(document.getElementById('sim-electricity').value),
+      device_hours_per_day:  parseFloat(document.getElementById('sim-devices').value),
+    };
+    try {
+      const res = await fetch('/api/calculate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.error) return;
+      const newKg = data.predicted_kg;
+      const diff = baselineKg - newKg;
+      const pct = baselineKg > 0 ? ((diff / baselineKg) * 100).toFixed(1) : 0;
+      document.getElementById('sim-new-val').textContent = newKg;
+      const badge = document.getElementById('sim-delta-badge');
+      badge.style.display = 'inline-block';
+      if (Math.abs(diff) < 1) {
+        badge.textContent = '= No change';
+        badge.style.cssText += ';background:rgba(107,148,120,0.15);color:var(--text3);border:1px solid var(--border)';
+        document.getElementById('sim-reduction-label').textContent = 'no difference yet';
+        document.getElementById('sim-progress-bar').style.width = '0%';
+        document.getElementById('sim-pct-label').textContent = '';
+      } else if (diff > 0) {
+        badge.textContent = `▼ ${pct}% less CO₂`;
+        badge.style.cssText += ';background:rgba(74,222,128,0.15);color:var(--green);border:1px solid rgba(74,222,128,0.3)';
+        document.getElementById('sim-reduction-label').textContent = `saving ${Math.abs(Math.round(diff))} kg/yr`;
+        document.getElementById('sim-progress-bar').style.width = Math.min(100, Math.abs(pct)) + '%';
+        document.getElementById('sim-pct-label').textContent = `${pct}% reduction`;
+      } else {
+        badge.textContent = `▲ ${Math.abs(pct)}% more CO₂`;
+        badge.style.cssText += ';background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3)';
+        document.getElementById('sim-reduction-label').textContent = `+${Math.abs(Math.round(diff))} kg/yr more`;
+        document.getElementById('sim-progress-bar').style.width = '0%';
+        document.getElementById('sim-pct-label').textContent = '';
+      }
+    } catch(e) { /* silent */ }
+  }, 300);
+}
+
+// ── LEADERBOARD ──
+async function loadLeaderboard() {
+  try {
+    const res = await fetch('/api/leaderboard');
+    const data = await res.json();
+    const tbody = document.getElementById('lb-body');
+    const maxScore = Math.max(...data.map(s => s.carbon_footprint_kg));
+    tbody.innerHTML = data.map((s, i) => {
+      const rank = i + 1;
+      const rankClass = rank <= 3 ? `rank-${rank}` : '';
+      const pct = (s.carbon_footprint_kg / maxScore * 100).toFixed(0);
+      return `<tr>
+        <td><span class="rank-badge ${rankClass}">${rank}</span></td>
+        <td style="font-weight:600;color:var(--text)">${s.name}</td>
+        <td>${s.role}</td>
+        <td><span class="transport-pill">${s.transport_mode}</span></td>
+        <td style="color:var(--text2)">${s.diet_type}</td>
+        <td><div class="score-bar-wrap">
+          <div class="score-mini-bar"><div class="score-mini-fill" style="width:${pct}%"></div></div>
+          <div class="score-num">${s.carbon_footprint_kg}</div>
+        </div></td>
+      </tr>`;
+    }).join('');
+  } catch(e) { showToast('Failed to load leaderboard', 'error'); }
+}
+
+// ── UPLOAD MODAL ──
+function openModal() { document.getElementById('modal-overlay').classList.add('open'); }
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  selectedFile = null;
+  document.getElementById('file-name').textContent = '';
+}
+function handleOverlayClick(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+function handleDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function handleDragLeave() { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) setSelectedFile(file);
+}
+function handleFileSelect(e) { const file = e.target.files[0]; if (file) setSelectedFile(file); }
+function setSelectedFile(file) { selectedFile = file; document.getElementById('file-name').textContent = '📄 ' + file.name; }
+async function uploadFile() {
+  if (!selectedFile) { showToast('Please select a CSV file first', 'error'); return; }
+  const formData = new FormData();
+  formData.append('file', selectedFile);
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    closeModal();
+    renderKPIs(data.data.kpis);
+    renderCharts(data.data);
+    showToast('✅ Dataset updated successfully!', 'success');
+  } catch(e) { showToast('Upload failed: ' + e.message, 'error'); }
+}
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+initDashboard();
+</script>
+</body>
+</html>

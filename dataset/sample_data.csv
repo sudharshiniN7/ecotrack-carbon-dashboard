@@ -1,0 +1,41 @@
+student_id,name,age,gender,role,transport_mode,diet_type,awareness_level,weekly_travel_km,meat_meals_per_week,electricity_kwh_month,device_hours_per_day,carbon_footprint_kg
+S001,Aarav Sharma,19,Male,Undergraduate,Bus,Omnivore,Medium,45,7,80,6,312
+S002,Priya Nair,21,Female,Postgraduate,Bicycle,Vegetarian,High,20,0,60,5,145
+S003,Ravi Kumar,20,Male,Undergraduate,Motorcycle,Omnivore,Low,60,10,90,8,420
+S004,Sneha Patel,22,Female,Postgraduate,Public Transit,Vegan,High,35,0,55,4,110
+S005,Arjun Mehta,19,Male,Undergraduate,Car,Omnivore,Low,80,12,100,7,510
+S006,Divya Rao,23,Female,PhD,Walk,Vegetarian,High,10,0,50,5,98
+S007,Karthik Iyer,21,Male,Undergraduate,Bus,Omnivore,Medium,50,6,75,6,295
+S008,Ananya Singh,20,Female,Undergraduate,Bicycle,Vegan,High,15,0,45,4,88
+S009,Rahul Gupta,22,Male,Postgraduate,Car,Omnivore,Low,90,14,110,9,590
+S010,Meera Joshi,19,Female,Undergraduate,Public Transit,Vegetarian,Medium,40,2,65,6,188
+S011,Vijay Reddy,24,Male,PhD,Motorcycle,Omnivore,Medium,55,8,85,7,380
+S012,Lakshmi Krishnan,21,Female,Undergraduate,Bus,Vegetarian,High,30,1,58,5,162
+S013,Aditya Verma,20,Male,Undergraduate,Car,Omnivore,Low,75,11,95,8,480
+S014,Pooja Desai,23,Female,Postgraduate,Walk,Vegan,High,8,0,48,4,92
+S015,Sanjay Pillai,22,Male,Postgraduate,Bicycle,Vegetarian,Medium,25,3,62,5,175
+S016,Nisha Malhotra,19,Female,Undergraduate,Public Transit,Omnivore,Medium,42,5,70,6,265
+S017,Rohan Chatterjee,21,Male,Undergraduate,Motorcycle,Omnivore,Low,65,9,88,7,415
+S018,Kavitha Subramaniam,24,Female,PhD,Bus,Vegetarian,High,32,1,55,4,152
+S019,Manish Tiwari,20,Male,Undergraduate,Car,Omnivore,Low,85,13,105,8,545
+S020,Deepa Menon,22,Female,Postgraduate,Walk,Vegan,High,12,0,42,3,80
+S021,Arun Bose,21,Male,Undergraduate,Bus,Omnivore,Medium,48,6,78,6,302
+S022,Sunita Sharma,19,Female,Undergraduate,Bicycle,Vegetarian,High,18,0,52,5,130
+S023,Prakash Nambiar,23,Male,Postgraduate,Car,Omnivore,Low,78,12,98,8,505
+S024,Rekha Pillai,20,Female,Undergraduate,Public Transit,Omnivore,Medium,38,5,68,6,258
+S025,Ganesh Kulkarni,24,Male,PhD,Walk,Vegetarian,High,9,1,46,4,105
+S026,Hema Iyer,22,Female,Postgraduate,Bicycle,Vegan,High,22,0,50,4,95
+S027,Nikhil Jain,19,Male,Undergraduate,Motorcycle,Omnivore,Low,58,10,86,7,410
+S028,Saranya Devi,21,Female,Undergraduate,Bus,Vegetarian,Medium,35,2,60,5,170
+S029,Vivek Pandey,20,Male,Undergraduate,Car,Omnivore,Low,82,11,102,8,525
+S030,Preeti Agarwal,23,Female,PhD,Walk,Vegan,High,7,0,40,3,75
+S031,Kiran Shetty,22,Male,Postgraduate,Public Transit,Omnivore,Medium,44,7,72,6,290
+S032,Bhavana Nair,19,Female,Undergraduate,Bicycle,Vegetarian,High,16,0,50,5,128
+S033,Suresh Menon,21,Male,Undergraduate,Motorcycle,Omnivore,Low,62,9,84,7,400
+S034,Geeta Patel,24,Female,PhD,Bus,Vegetarian,High,28,1,54,4,148
+S035,Ashwin Kumar,20,Male,Undergraduate,Car,Omnivore,Low,72,10,92,8,460
+S036,Lavanya Rao,22,Female,Postgraduate,Walk,Vegan,High,11,0,44,4,88
+S037,Dev Sharma,19,Male,Undergraduate,Bus,Omnivore,Medium,46,6,76,6,298
+S038,Padma Krishnan,23,Female,Postgraduate,Bicycle,Vegetarian,Medium,20,2,56,5,140
+S039,Mohan Gupta,21,Male,Undergraduate,Motorcycle,Omnivore,Low,59,10,87,7,412
+S040,Usha Reddy,20,Female,Undergraduate,Public Transit,Omnivore,Medium,40,4,66,6,250
